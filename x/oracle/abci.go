@@ -85,6 +85,12 @@ func MidBlocker(ctx sdk.Context, k keeper.Keeper) {
 				// Get weighted median of cross exchange rates
 				exchangeRate := Tally(ctx, ballot, params.RewardBand, validatorClaimMap)
 
+				// if exchange rate is somehow 0, exclude it from ballot?
+				if exchangeRate.IsZero() {
+					// skip this denom
+					continue
+				}
+
 				// Transform into the original form base/quote
 				if denom != referenceDenom {
 					exchangeRate = exchangeRateRD.Quo(exchangeRate)
@@ -162,5 +168,7 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) {
 	// reset miss counters of all validators at the last block of slash window
 	if utils.IsPeriodLastBlock(ctx, params.SlashWindow) {
 		k.SlashAndResetCounters(ctx)
+		// Compare vote targets and actives and remove excess feeds
+		k.RemoveExcessFeeds(ctx)
 	}
 }
